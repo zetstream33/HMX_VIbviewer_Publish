@@ -101,6 +101,7 @@ def fill_missing_times(df, missing_value=0.00):
 st.title("CSV to XLSX File Converter with DateTime Handling and Missing Time Filling")
 st.write("Upload a CSV file to convert it to an Excel file with formatted datetime and filled missing times.")
 st.write(f"\n**Last Updated at 2024-11-15 by QSHE Team Eojin LEE**")
+st.write(f"이 프로그램은 자동 업데이트를 지원합니다. (게이트웨이 혹은 기기의 인터넷 연결 필요) ")
 st.write(f"This program is the property of 현대무벡스(주) 품질환경안전팀")
 st.write(f"\n Unauthorized distribution is prohibited. \n")
 

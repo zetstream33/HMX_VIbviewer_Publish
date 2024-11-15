@@ -630,6 +630,7 @@ st.title("Vibration Sensor Acceleration(RMS, RAW) Viewer (BroadSens 사 SVT V, A
 # 사이드바에 UI 요소 배치
 with st.sidebar:
     st.write(f"\n**Last Updated at 2024-11-15 by QSHE Team Eojin LEE**")
+    st.write(f"이 프로그램은 자동 업데이트를 지원합니다. (게이트웨이 혹은 기기의 인터넷 연결 필요) ")
     st.write(f"This program is the property of 현대무벡스(주) 품질환경안전팀")
     st.write(f"\n Unauthorized distribution is prohibited. \n")
     # st.write(f"\n 센서 번호 맵핑 (통계 Export 시 SRM 기준 기본값) \n")
