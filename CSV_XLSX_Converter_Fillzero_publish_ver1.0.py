@@ -100,6 +100,9 @@ def fill_missing_times(df, missing_value=0.00):
 # Streamlit 제목 및 설명
 st.title("CSV to XLSX File Converter with DateTime Handling and Missing Time Filling")
 st.write("Upload a CSV file to convert it to an Excel file with formatted datetime and filled missing times.")
+st.write(f"\n**Last Updated at 2024-11-15 by QSHE Team Eojin LEE**")
+st.write(f"This program is the property of 현대무벡스(주) 품질환경안전팀")
+st.write(f"\n Unauthorized distribution is prohibited. \n")
 
 # 결측값 입력받기
 missing_value = st.number_input("Enter the value to replace missing data:", value=0.00, step=0.01, min_value=0.00)
