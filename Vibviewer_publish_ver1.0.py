@@ -285,8 +285,108 @@ def plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_ax
     except Exception as e:
         st.error(f"Error: {str(e)}")
 
-def plot_range_bar_data(df, start_time, end_time, selected_sensors, selected_axes, threshold, show_text,
-                         marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick):
+# def plot_range_bar_data(df, start_time, end_time, selected_sensors, selected_axes, threshold, show_text,
+#                          marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick):
+#     try:
+#         if start_time > end_time:
+#             st.error("Start time must be earlier than end time.")
+#             return
+#
+#         if not selected_sensors:
+#             st.warning("No sensors selected.")
+#             return
+#
+#         columns_to_plot = []
+#         data_labels = []
+#
+#         # 컬럼 선택 로직
+#         if 'grms_x' in df.columns:
+#             for axis in selected_axes:
+#                 columns_to_plot.append(f'grms_{axis.lower()}')
+#                 data_labels.append(f'{axis}축')
+#
+#         elif 'X_axis' in df.columns:
+#             for axis in selected_axes:
+#                 columns_to_plot.append(f'{axis}_axis')
+#                 data_labels.append(f'{axis}축')
+#
+#         # 필터링된 데이터
+#         filtered_data = df[(df['Time'] >= start_time) & (df['Time'] <= end_time) &
+#                            (df['Sensor'].isin(selected_sensors)) &
+#                            (df[columns_to_plot].max(axis=1) >= threshold)]
+#
+#         if start_at_midnight:
+#             min_time = filtered_data['Time'].min()
+#             min_date = min_time.normalize()  # 자정 시간으로 설정
+#             filtered_data.loc[:, 'Time'] = filtered_data['Time'].apply(lambda x: min_date + (x - min_time))
+#             filtered_data.loc[:, 'Time'] = filtered_data['Time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+#
+#         if average:
+#             filtered_data = filtered_data.groupby(['Time', 'Sensor'])[columns_to_plot].mean().reset_index()
+#
+#         # 시간 단위로 그룹화하고 High(최고값), Low(최저값) 계산
+#         range_data = []
+#
+#         for sensor in selected_sensors:
+#             sensor_data = filtered_data[filtered_data['Sensor'] == sensor]
+#             if sensor_data.empty:
+#                 continue
+#
+#             for axis, column in zip(selected_axes, columns_to_plot):
+#                 # 시간 단위로 그룹화하여 각 1초마다 최고값과 최저값 계산
+#                 high_values = sensor_data.groupby(sensor_data['Time'].dt.floor('S'))[column].max()
+#                 low_values = sensor_data.groupby(sensor_data['Time'].dt.floor('S'))[column].min()
+#
+#                 # 범위 막대 차트를 그릴 데이터 추가
+#                 range_data.append(go.Bar(
+#                     x=high_values.index,
+#                     y=high_values - low_values,  # 범위의 차이
+#                     base=low_values,  # 최소값에서 시작
+#                     name=f'Sensor {sensor} - {axis}축',
+#                     hovertext=[f'High: {high:.2f}, Low: {low:.2f}' for high, low in zip(high_values, low_values)],
+#                     hoverinfo='text',
+#                     marker=dict(color='lightblue', line=dict(width=2, color='blue'))
+#                 ))
+#
+#         # 그래프 객체 생성
+#         fig = go.Figure(data=range_data)
+#
+#         # 레이아웃 설정
+#         fig.update_layout(
+#             title=title or 'Range Bar Chart by Sensor and Axis',
+#             title_x=0.5,
+#             title_xanchor='center',
+#             title_yanchor='middle',
+#             title_font_size=25,
+#             title_font_color="black",
+#             title_font_family="Arial",
+#             xaxis=dict(title='Time', tickformat='%H:%M:%S'),
+#             yaxis=dict(
+#                 title='범위 막대 그래프 테스트',
+#                 tick0=0,
+#                 dtick=yaxis_major_tick,  # Major ticks interval
+#                 range=[yaxis_min_value, yaxis_max_value],  # Y축의 최소/최대값 설정
+#             )
+#         )
+#
+#         fig.update_xaxes(
+#             tickformat='%H:%M:%S',
+#             dtick=xaxis_major_tick*1000,  # 1초 간격으로 틱
+#             showgrid=True,
+#             gridwidth=1,
+#             gridcolor='lightgray',
+#             showspikes=True
+#         )
+#         fig.update_yaxes(showspikes=True)
+#         fig.update_layout(height=1080, spikedistance=1000, hoverdistance=100)  # 그래프 높이 설정 (예: 800px)
+#
+#         return fig
+#     except Exception as e:
+#         st.error(f"Error: {str(e)}")
+
+# Candle Chart를 플로팅하는 함수
+def plot_candle_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, show_text,
+                           marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value, xaxis_major_tick):
     try:
         if start_time > end_time:
             st.error("Start time must be earlier than end time.")
@@ -296,97 +396,103 @@ def plot_range_bar_data(df, start_time, end_time, selected_sensors, selected_axe
             st.warning("No sensors selected.")
             return
 
-        columns_to_plot = []
-        data_labels = []
+        # 'X_axis'가 포함된 파일 구조에 대해 처리
+        if 'X_axis' not in df.columns:
+            st.error("The provided file does not contain the expected 'X_axis' column.")
+            return
 
-        # 컬럼 선택 로직
-        if 'grms_x' in df.columns:
-            for axis in selected_axes:
-                columns_to_plot.append(f'grms_{axis.lower()}')
-                data_labels.append(f'{axis}축')
-
-        elif 'X_axis' in df.columns:
-            for axis in selected_axes:
-                columns_to_plot.append(f'{axis}_axis')
-                data_labels.append(f'{axis}축')
-
-        # 필터링된 데이터
+        # 선택한 센서 및 시간 범위로 데이터 필터링
         filtered_data = df[(df['Time'] >= start_time) & (df['Time'] <= end_time) &
-                           (df['Sensor'].isin(selected_sensors)) &
-                           (df[columns_to_plot].max(axis=1) >= threshold)]
+                           (df['Sensor'].isin(selected_sensors))]
 
-        if start_at_midnight:
-            min_time = filtered_data['Time'].min()
-            min_date = min_time.normalize()  # 자정 시간으로 설정
-            filtered_data.loc[:, 'Time'] = filtered_data['Time'].apply(lambda x: min_date + (x - min_time))
-            filtered_data.loc[:, 'Time'] = filtered_data['Time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        if filtered_data.empty:
+            st.warning("No data available for the selected time range and sensors.")
+            return
 
-        if average:
-            filtered_data = filtered_data.groupby(['Time', 'Sensor'])[columns_to_plot].mean().reset_index()
+        # Time 열을 datetime 형식으로 변환
+        filtered_data['Time'] = pd.to_datetime(filtered_data['Time'], format='%Y-%m-%d %H:%M:%S')
 
-        # 시간 단위로 그룹화하고 High(최고값), Low(최저값) 계산
-        range_data = []
-
+        # 선택한 축의 데이터를 사용하여 최소, 최대, 시작, 종료 값을 계산
+        candle_data = []
         for sensor in selected_sensors:
             sensor_data = filtered_data[filtered_data['Sensor'] == sensor]
             if sensor_data.empty:
                 continue
 
-            for axis, column in zip(selected_axes, columns_to_plot):
-                # 시간 단위로 그룹화하여 각 1초마다 최고값과 최저값 계산
-                high_values = sensor_data.groupby(sensor_data['Time'].dt.floor('S'))[column].max()
-                low_values = sensor_data.groupby(sensor_data['Time'].dt.floor('S'))[column].min()
+            # 1초 단위로 그룹화하여 캔들 데이터 생성
+            grouped = sensor_data.resample('1S', on='Time').agg({
+                'X_axis': ['first', 'last', 'min', 'max'],
+                'Y_axis': ['first', 'last', 'min', 'max'],
+                'Z_axis': ['first', 'last', 'min', 'max']
+            }).dropna().reset_index()
 
-                # 범위 막대 차트를 그릴 데이터 추가
-                range_data.append(go.Bar(
-                    x=high_values.index,
-                    y=high_values - low_values,  # 범위의 차이
-                    base=low_values,  # 최소값에서 시작
-                    name=f'Sensor {sensor} - {axis}축',
-                    hovertext=[f'High: {high:.2f}, Low: {low:.2f}' for high, low in zip(high_values, low_values)],
-                    hoverinfo='text',
-                    marker=dict(color='lightblue', line=dict(width=2, color='blue'))
+            grouped.columns = ['Time', 'X_open', 'X_close', 'X_low', 'X_high',
+                               'Y_open', 'Y_close', 'Y_low', 'Y_high',
+                               'Z_open', 'Z_close', 'Z_low', 'Z_high']
+
+            grouped['Sensor'] = sensor
+            candle_data.append(grouped)
+
+        if not candle_data:
+            st.warning("No data available after resampling.")
+            return
+
+        # 데이터프레임 병합
+        candle_df = pd.concat(candle_data, ignore_index=True)
+
+        # 캔들 차트를 위한 Plotly 그래프 객체 생성
+        fig = go.Figure()
+
+        for sensor in selected_sensors:
+            sensor_data = candle_df[candle_df['Sensor'] == sensor]
+            for axis in selected_axes:
+                fig.add_trace(go.Candlestick(
+                    x=sensor_data['Time'],
+                    open=sensor_data[f'{axis}_open'],
+                    high=sensor_data[f'{axis}_high'],
+                    low=sensor_data[f'{axis}_low'],
+                    close=sensor_data[f'{axis}_close'],
+                    name=f'Sensor {sensor} - {axis} axis'
                 ))
 
-        # 그래프 객체 생성
-        fig = go.Figure(data=range_data)
-
-        # 레이아웃 설정
+        # 그래프 레이아웃 설정
         fig.update_layout(
-            title=title or 'Range Bar Chart by Sensor and Axis',
+            title=title or 'Measurement Values Over Time by Sensor and Axis (Candle Chart)',
             title_x=0.5,
             title_xanchor='center',
             title_yanchor='middle',
             title_font_size=25,
             title_font_color="black",
             title_font_family="Arial",
-            xaxis=dict(title='Time', tickformat='%H:%M:%S'),
+            xaxis=dict(
+                title='Time',
+                tickformat='%H:%M:%S',
+                dtick=xaxis_major_tick * 1000,
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='lightgray',
+                showspikes=True
+            ),
             yaxis=dict(
-                title='범위 막대 그래프 테스트',
+                title=data_type,
                 tick0=0,
-                dtick=yaxis_major_tick,  # Major ticks interval
-                range=[yaxis_min_value, yaxis_max_value],  # Y축의 최소/최대값 설정
-            )
+                dtick=yaxis_major_tick,
+                range=[yaxis_min_value, yaxis_max_value],
+                showspikes=True
+            ),
+            height=1080,
+            spikedistance=1000,
+            hoverdistance=100
         )
-
-        fig.update_xaxes(
-            tickformat='%H:%M:%S',
-            dtick=xaxis_major_tick*1000,  # 1초 간격으로 틱
-            showgrid=True,
-            gridwidth=1,
-            gridcolor='lightgray',
-            showspikes=True
-        )
-        fig.update_yaxes(showspikes=True)
-        fig.update_layout(height=1080, spikedistance=1000, hoverdistance=100)  # 그래프 높이 설정 (예: 800px)
 
         return fig
+
     except Exception as e:
         st.error(f"Error: {str(e)}")
 
 
 def plot_heatmap_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, title,
-                        start_at_midnight, average):
+                        start_at_midnight, average,show_text):
     try:
         if start_time > end_time:
             st.error("Start time must be earlier than end time.")
@@ -437,7 +543,8 @@ def plot_heatmap_plotly(df, start_time, end_time, selected_sensors, selected_axe
         ))
 
         # 각 칸에 값 표시
-        fig.update_traces(texttemplate='%{text}', textfont={'size': 12})
+        if show_text:
+            fig.update_traces(texttemplate='%{text}', textfont={'size': 8})
 
         # 레이아웃 설정
         fig.update_layout(
@@ -629,7 +736,7 @@ st.title("Vibration Sensor Acceleration(RMS, RAW) Viewer (BroadSens 사 SVT V, A
 
 # 사이드바에 UI 요소 배치
 with st.sidebar:
-    st.write(f"\n**Last Updated at 2024-11-15 by QSHE Team Eojin LEE**")
+    st.write(f"\n**Last Updated at 2024-11-18 by QSHE Team Eojin LEE**")
     st.write(f"This program is the property of 현대무벡스(주) 품질환경안전팀")
     st.write(f"\n Unauthorized distribution is prohibited. \n")
     # st.write(f"\n 센서 번호 맵핑 (통계 Export 시 SRM 기준 기본값) \n")
@@ -712,20 +819,21 @@ with st.sidebar:
         if 'plot_button_icon' not in st.session_state:
             st.session_state.plot_button_icon = ":material/earthquake:"
 
+
         def plot_type_icon_selector():
             plot_type = st.session_state.plot_type
             if plot_type == "선 그래프":
                 st.session_state.plot_button_icon = ":material/earthquake:"
             elif plot_type == '막대 그래프':
                 st.session_state.plot_button_icon = ":material/finance:"
-            elif plot_type == '캔들 막대 그래프(미완성)':
+            elif plot_type == '캔들 차트(SVT-A센서 전용)':
                 st.session_state.plot_button_icon = ":material/candlestick_chart:"
-            elif plot_type == '히트맵(미완성)':
+            elif plot_type == '히트맵':
                 st.session_state.plot_button_icon = ":material/key_visualizer:"
             else:
                 st.session_state.plot_button_icon = None
 
-        plot_type = st.selectbox("Plot Type:", ['선 그래프', '막대 그래프', '캔들 막대 그래프(미완성)', '히트맵(미완성)', '3D Scatter(개발중)','3D Surface(개발중)'],key='plot_type',on_change=plot_type_icon_selector)
+        plot_type = st.selectbox("Plot Type:", ['선 그래프', '막대 그래프', '캔들 차트(SVT-A센서 전용)', '히트맵', '3D Scatter(개발중)','3D Surface(개발중)'],key='plot_type',on_change=plot_type_icon_selector)
 
 
         marker_size = st.slider("Marker Size:", min_value=1, max_value=20, value=4)
@@ -763,13 +871,13 @@ if uploaded_file and plot_button_clicked:
         fig = plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold,
                                    show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick
                                    )
-    elif plot_type == '캔들 막대 그래프(미완성)':
-        fig = plot_range_bar_data(df, start_time, end_time, selected_sensors, selected_axes, threshold, show_text,
-                         marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick)
+    elif plot_type == '캔들 차트(SVT-A센서 전용)':
+        fig = plot_candle_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold, show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value, xaxis_major_tick)
 
-    elif plot_type == '히트맵(미완성)':
-        fig = plot_heatmap_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold, title,
-                              start_at_midnight, average)
+    elif plot_type == '히트맵':
+        fig = plot_heatmap_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold,
+                                  title,
+                                  start_at_midnight, average,show_text)
 
     elif plot_type == '3D Scatter(개발중)':
         fig = plot_3d_scatter_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold,
@@ -782,7 +890,7 @@ if uploaded_file and plot_button_clicked:
     if fig is not None:
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.error("Failed to generate the heatmap.")
+        st.error("Failed to generate Plot.")
 
     # 그래프를 화면에 꽉 차도록 표시
     st.write(f"* * *")

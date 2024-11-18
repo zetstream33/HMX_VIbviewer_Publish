@@ -50,11 +50,6 @@ def convert_file(input_file):
 
     # 리스트를 DataFrame으로 변환
     df = pd.DataFrame(data, columns=headers)
-
-    # 숫자 데이터로 변환 시도 (첫 번째 열 제외)
-    for col in df.columns[1:]:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-
     return df
 
 # 결측 시간을 0으로 채우는 함수
@@ -80,12 +75,9 @@ def fill_missing_times(df, missing_value=0.00):
             row = df[(df['Time'] == current_time) & (df['Sensor'] == sensor)]
             if row.empty:
                 if missing_value == 0.00:
-                    missing_value = int(0)  # 만약 결측치를 채우는 값이 0.00(기본값) 이라면 정수형식인 0으로 바꿔서 엑셀에 넣어줌.
-
-                # 결측값이 있는 경우, 사용자가 입력한 값으로 채움
+                    missing_value = int(0)  # 결측치를 채우는 값이 0.00이라면 정수형식으로 처리
                 new_data.append([current_time, sensor, missing_value, missing_value, missing_value, missing_value, missing_value, missing_value])
             else:
-                # 결측값이 없는 경우, 해당 값을 사용
                 new_data.append([current_time, sensor] + row.iloc[0, 2:].tolist())
 
     # 새로운 데이터프레임 생성
@@ -100,9 +92,11 @@ def fill_missing_times(df, missing_value=0.00):
 # Streamlit 제목 및 설명
 st.title("CSV to XLSX File Converter with DateTime Handling and Missing Time Filling")
 st.write("Upload a CSV file to convert it to an Excel file with formatted datetime and filled missing times.")
-st.write(f"\n**Last Updated at 2024-11-15 by QSHE Team Eojin LEE**")
-st.write(f"This program is the property of 현대무벡스(주) 품질환경안전팀")
-st.write(f"\n Unauthorized distribution is prohibited. \n")
+st.write(f"\n**Last Updated at 2024-11-18 by QSHE Team Eojin LEE**")
+st.write(f"This program is the property of Hyundai Movex co.Ltd.   Unauthorized distribution is prohibited.\n")
+st.write(f"- - -")
+st.write(f"\n Broadsens 사 **SVT-V** 센서와 **SVT-A** 센서 모두 사용 가능합니다. \n")
+st.write(f"SVT-A 센서 데이터 사용시 결측 시간 채움 기능이 비활성화 됩니다. \n")
 
 # 결측값 입력받기
 missing_value = st.number_input("Enter the value to replace missing data:", value=0.00, step=0.01, min_value=0.00)
@@ -116,10 +110,19 @@ if uploaded_file is not None:
 
     # CSV 파일 변환
     try:
-        df = convert_file(uploaded_file)
+        # CSV 파일 헤더 읽기
+        uploaded_file.seek(0)
+        header_row = csv.reader(uploaded_file.read().decode('utf-8').splitlines())
+        headers = next(header_row)
 
-        # 결측 시간을 0으로 채우기
-        df = fill_missing_times(df, missing_value=missing_value)
+        # 열 구조 확인
+        if 'grms_x' in headers:
+            df = convert_file(uploaded_file)
+            df = fill_missing_times(df, missing_value=missing_value)
+        elif 'X_axis' in headers:
+            df = convert_file(uploaded_file)
+        else:
+            raise ValueError("Unsupported file structure. Please check the input file.")
 
         # 결과를 새로운 엑셀 파일로 저장
         output = BytesIO()
