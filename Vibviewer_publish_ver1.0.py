@@ -398,7 +398,7 @@ def plot_candle_data_plotly(df, start_time, end_time, selected_sensors, selected
 
         # 'X_axis'가 포함된 파일 구조에 대해 처리
         if 'X_axis' not in df.columns:
-            st.error("The provided file does not contain the expected 'X_axis' column.")
+            st.error("캔들 차트는 SVT-A 센서에서만 사용할 수 있습니다.")
             return
 
         # 선택한 센서 및 시간 범위로 데이터 필터링
@@ -890,7 +890,7 @@ if uploaded_file and plot_button_clicked:
     if fig is not None:
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.error("Failed to generate Plot.")
+        st.error("Failed to generate Plot. This Error Caused by Problem with Data File(.xlsx) or internal error.")
 
     # 그래프를 화면에 꽉 차도록 표시
     st.write(f"* * *")
