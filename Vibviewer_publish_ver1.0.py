@@ -736,9 +736,9 @@ st.title("Vibration Sensor Acceleration(RMS, RAW) Viewer (BroadSens 사 SVT V, A
 
 # 사이드바에 UI 요소 배치
 with st.sidebar:
-    st.write(f"\n**Last Updated at 2024-11-18 by QSHE Team Eojin LEE**")
-    st.write(f"This program is the property of 현대무벡스(주) 품질환경안전팀")
-    st.write(f"\n Unauthorized distribution is prohibited. \n")
+    st.write(f"**:green[Version 2024-11-18]** by QSHE Team Eojin LEE")
+    st.write(f"이 프로그램은 :blue[자동 업데이트]를 지원합니다. 업데이트를 진행하려면 **게이트웨이를 인터넷에 연결**해주세요.")
+    st.write(f"-----")
     # st.write(f"\n 센서 번호 맵핑 (통계 Export 시 SRM 기준 기본값) \n")
     # st.write(f"166: HP Guide roller L / 167: HP Guide roller R / 192: HP Wheel / 193: OP Guide roller L / 194: OP Guide roller R / 195: OP Wheel / 247: Sensor Bracket / 248: 기상반 PCB / 249: Carriage / 250: Mast")
     uploaded_file = st.file_uploader("Step 1. Select File", type=["xlsx", "xls"])

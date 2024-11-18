@@ -91,12 +91,12 @@ def fill_missing_times(df, missing_value=0.00):
 
 # Streamlit 제목 및 설명
 st.title("CSV to XLSX File Converter with DateTime Handling and Missing Time Filling")
-st.write("Upload a CSV file to convert it to an Excel file with formatted datetime and filled missing times.")
-st.write(f"\n**Last Updated at 2024-11-18 by QSHE Team Eojin LEE**")
-st.write(f"This program is the property of Hyundai Movex co.Ltd.   Unauthorized distribution is prohibited.\n")
+st.write("CSV 파일을 업로드하여 날짜와 시간을 형식화하고 누락된 시간을 채운 Excel 파일로 변환하세요.")
+st.write(f"**:green[Version 2024-11-18]** by QSHE Team Eojin LEE")
+st.write(f"이 프로그램은 :blue[자동 업데이트]를 지원합니다. 업데이트를 진행하려면 **게이트웨이를 인터넷에 연결**해주세요.")
 st.write(f"- - -")
 st.write(f"\n Broadsens 사 **SVT-V** 센서와 **SVT-A** 센서 모두 사용 가능합니다. \n")
-st.write(f"SVT-A 센서 데이터 사용시 결측 시간 채움 기능이 비활성화 됩니다. \n")
+st.write(f"SVT-A 센서 데이터 사용시 결측 시간 채움 기능이 **비활성화** 됩니다. \n")
 
 # 결측값 입력받기
 missing_value = st.number_input("Enter the value to replace missing data:", value=0.00, step=0.01, min_value=0.00)
