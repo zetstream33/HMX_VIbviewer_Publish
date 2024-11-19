@@ -85,8 +85,14 @@ def determine_yaxis_label(df):
     else:
         return 'Unknown Data Type'
 
+from plotly.subplots import make_subplots
+import plotly.graph_objs as go
+
+from plotly.subplots import make_subplots
+import plotly.graph_objs as go
+
 def plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, show_text,
-                     marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick):
+                     marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value, xaxis_major_tick, show_rangeslider):
     try:
         if start_time > end_time:
             st.error("Start time must be earlier than end time.")
@@ -105,9 +111,11 @@ def plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, 
                 columns.append(f'grms_{axis.lower()}')
                 data_labels.append(f'{axis}축')
         elif 'X_axis' in df.columns:
-            for axis in selected_axes:
-                columns.append(f'{axis}_axis')
-                data_labels.append(f'{axis}축')
+            # for axis in selected_axes:
+            #     columns.append(f'{axis}_axis')
+            #     data_labels.append(f'{axis}축')
+            st.error("**선 그래프는 SVT-A 센서에서 사용을 권장하지 않습니다.** 캔들 차트를 이용해 주세요.")
+            return
 
         # 데이터 필터링
         filtered_df = df[(df['Time'] >= start_time) & (df['Time'] <= end_time) &
@@ -124,8 +132,15 @@ def plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, 
         if average:
             filtered_df = filtered_df.groupby(['Time', 'Sensor'])[columns].mean().reset_index()
 
-        fig = make_subplots(rows=1, cols=1)
+        # show_rangeslider에 따라 서브플롯 여부 결정
+        if show_rangeslider:
+            # 메인 플롯 및 요약 플롯을 위한 서브플롯 생성
+            fig = make_subplots(rows=2, cols=1, row_heights=[0.7, 0.3], shared_xaxes=True, vertical_spacing=0.1)
+        else:
+            # 단일 플롯 생성
+            fig = make_subplots(rows=1, cols=1)
 
+        # 메인 플롯 생성
         for sensor in selected_sensors:
             for column, label in zip(columns, data_labels):
                 sensor_data = filtered_df[filtered_df['Sensor'] == sensor]
@@ -139,8 +154,25 @@ def plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, 
                     marker=dict(size=marker_size),
                     text=sensor_data[column].apply(lambda x: f"{x:.2f}") if show_text else None,
                     textposition="top center"
-                ))
+                ), row=1, col=1)
 
+        # 요약 플롯 (미니맵) 추가
+        if show_rangeslider:
+            for sensor in selected_sensors:
+                for column, label in zip(columns, data_labels):
+                    sensor_data = filtered_df[filtered_df['Sensor'] == sensor]
+                    if sensor_data.empty:
+                        continue
+                    fig.add_trace(go.Scatter(
+                        x=sensor_data['Time'],
+                        y=sensor_data[column],
+                        mode='lines',
+                        line=dict(width=1, color='lightgray'),
+                        name=f'Summary {sensor} - {label}',
+                        showlegend=False
+                    ), row=2, col=1)
+
+        # 그래프 레이아웃 업데이트
         fig.update_layout(
             title=title or f"{data_type} Plot",
             title_x=0.5,
@@ -152,30 +184,20 @@ def plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, 
             yaxis=dict(
                 title=data_type,
                 tick0=0,
-                dtick=yaxis_major_tick,  # Major ticks interval을 0.5로 설정 -> Major ticks interval 0.5 로 기본 설정하고, 슬라이더로 바꿀 수 있게끔 설정함.
-                range=[yaxis_min_value, yaxis_max_value],  # Y축의 최대값 설정
+                dtick=yaxis_major_tick,
+                range=[yaxis_min_value, yaxis_max_value],
             ),
             showlegend=True,
             legend=dict(
-                # x=0,  # 범례를 화면의 좌측으로 이동
-                # y=1,
-                # xanchor='left',
-                # yanchor='top',
-                font=dict(
-                    size=10  # 범례의 폰트를 줄이기 (예: 10px)
-                )
-            )
+                font=dict(size=10)
+            ),
+            xaxis_rangeslider_visible=False  # 메인 플롯 아래의 요약 플롯을 대신 사용하므로 범위 슬라이더 비활성화
         )
-        # fig.update_traces(mode = "markers+lines")
-        fig.update_traces(mode="markers+lines")
 
-        if show_text:
-            fig.update_traces(texttemplate='%{y:.2f}', textposition='outside',
-                              textfont=dict(size=60))  # 폰트 크기를 60로 설정
-
+        # X축 및 Y축 설정
         fig.update_xaxes(
             tickformat='%H:%M:%S',
-            dtick=xaxis_major_tick * 1000,  # 1초 간격으로 틱
+            dtick=xaxis_major_tick * 1000,
             showgrid=True,
             gridwidth=1,
             gridcolor='lightgray',
@@ -183,13 +205,16 @@ def plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, 
         )
         fig.update_yaxes(showspikes=True, spikethickness=2)
 
-        fig.update_layout(height=1080, spikedistance=1000, hoverdistance=100) # 그래프 높이 설정 (예: 800px)
+        fig.update_layout(height=1080, spikedistance=1000, hoverdistance=100)
+
         return fig
+
     except Exception as e:
         st.error(f"Error: {str(e)}")
 
+
 def plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, show_text,
-                         marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick):
+                         marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick,show_rangeslider):
     try:
         if start_time > end_time:
             st.error("Start time must be earlier than end time.")
@@ -210,10 +235,12 @@ def plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_ax
                 # data_labels.append(f'{axis}축')
 
         elif 'X_axis' in df.columns:
-            for axis in selected_axes:
-                columns_to_plot.append(f'{axis}_axis')
-                # data_labels.append(f'가속도 {axis}축')
-                data_labels.append(f'{axis}축')
+            # for axis in selected_axes:
+            #     columns_to_plot.append(f'{axis}_axis')
+            #     # data_labels.append(f'가속도 {axis}축')
+            #     data_labels.append(f'{axis}축')
+            st.error("**막대 그래프는 SVT-A 센서에서 사용을 권장하지 않습니다.** 캔들 차트를 이용해 주세요.")
+            return
 
         filtered_data = df[(df['Time'] >= start_time) & (df['Time'] <= end_time) &
                            (df['Sensor'].isin(selected_sensors)) &
@@ -230,6 +257,7 @@ def plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_ax
 
         if average:
             filtered_data = filtered_data.groupby(['Time', 'Sensor'])[columns_to_plot].mean().reset_index()
+
 
         long_format = filtered_data.melt(id_vars=['Time', 'Sensor'], value_vars=columns_to_plot, var_name='Axis',
                                          value_name='Value') #범례 바꾸기 위해 이전꺼 주석처리(Trial and error)
@@ -284,6 +312,7 @@ def plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_ax
         return fig
     except Exception as e:
         st.error(f"Error: {str(e)}")
+
 
 # def plot_range_bar_data(df, start_time, end_time, selected_sensors, selected_axes, threshold, show_text,
 #                          marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick):
@@ -490,7 +519,6 @@ def plot_candle_data_plotly(df, start_time, end_time, selected_sensors, selected
     except Exception as e:
         st.error(f"Error: {str(e)}")
 
-
 def plot_heatmap_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, title,
                         start_at_midnight, average,show_text):
     try:
@@ -569,7 +597,6 @@ def plot_heatmap_plotly(df, start_time, end_time, selected_sensors, selected_axe
     except Exception as e:
         st.error(f"Error: {str(e)}")
 
-
 def plot_3d_scatter_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, title,
                            start_at_midnight, average):
     try:
@@ -647,7 +674,6 @@ def plot_3d_scatter_plotly(df, start_time, end_time, selected_sensors, selected_
 
     except Exception as e:
         st.error(f"Error: {str(e)}")
-
 def plot_surface_plotly(df, start_time, end_time, selected_sensors, selected_axes, data_type, threshold, title,
                         start_at_midnight, average):
     try:
@@ -736,7 +762,7 @@ st.title("Vibration Sensor Acceleration(RMS, RAW) Viewer (BroadSens 사 SVT V, A
 
 # 사이드바에 UI 요소 배치
 with st.sidebar:
-    st.write(f"**:green[Version 2024-11-18]** by QSHE Team Eojin LEE")
+    st.write(f"**:green[Version 2024-11-19]** by QSHE Team Eojin LEE")
     st.write(f"이 프로그램은 :blue[자동 업데이트]를 지원합니다. 업데이트를 진행하려면 **게이트웨이를 인터넷에 연결**해주세요.")
     st.write(f"-----")
     # st.write(f"\n 센서 번호 맵핑 (통계 Export 시 SRM 기준 기본값) \n")
@@ -841,7 +867,8 @@ with st.sidebar:
         start_at_midnight = st.checkbox("<옵션 1> 타임스탬프 00:00:00 시작")
         average = st.checkbox("<옵션 2> 동일 시간 데이터 평균값 적용(단위 : 초)")
         show_text = st.checkbox('<옵션 3> 데이터 값 모두 표시 (주의 ! Data 수 다량 사용시 문제 발생할 수 있음)')
-        custom_title = st.checkbox("<옵션 4> 그래프 Title 수동 입력")
+        show_rangeslider = st.checkbox('<옵션 4> 메인 Plot 하단에 요약 Plot 추가 (차트 유형별 일부 상이함)')
+        custom_title = st.checkbox("<옵션 5> 그래프 Title 수동 입력")
 
 
         title = ""
@@ -850,7 +877,7 @@ with st.sidebar:
 
         # Y축 눈금 설정 슬라이더
         yaxis_max_value = st.slider("Y-axis Max Value:", min_value=1.0, max_value=10.0, value=5.0, step=0.5)
-        yaxis_min_value = st.slider("Y-axis Min Value:", min_value=-10, max_value=0, value=0, step=1)
+        yaxis_min_value = st.slider("Y-axis Min Value:", min_value=-10.0, max_value=0.0, value=0.0, step=0.5)
         yaxis_major_tick = st.slider("Y-axis Major Tick Interval:", min_value=0.1, max_value=1.5, value=0.5, step=0.1)
 
         # 시간 눈금 설정 슬라이더
@@ -865,11 +892,11 @@ if uploaded_file and plot_button_clicked:
     st.write(f"---------------------------------------------")  # 여백 추가를 원하면 사용
     if plot_type == '선 그래프':
         fig = plot_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold,
-                               show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick
+                               show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick,show_rangeslider
                                )
     elif plot_type == '막대 그래프':
         fig = plot_bar_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold,
-                                   show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick
+                                   show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value,xaxis_major_tick,show_rangeslider
                                    )
     elif plot_type == '캔들 차트(SVT-A센서 전용)':
         fig = plot_candle_data_plotly(df, start_time, end_time, selected_sensors, selected_axes, yaxis_label, threshold, show_text, marker_size, title, start_at_midnight, average, yaxis_major_tick, yaxis_max_value, yaxis_min_value, xaxis_major_tick)
