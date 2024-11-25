@@ -98,8 +98,13 @@ st.write(f"- - -")
 st.write(f"\n Broadsens 사 **SVT-V** 센서와 **SVT-A** 센서 모두 사용 가능합니다. \n")
 st.write(f"SVT-A 센서 데이터 사용시 결측 시간 채움 기능이 **비활성화** 됩니다. \n")
 
+if "visibility" not in st.session_state:
+    st.session_state.visibility = "visible"
+    st.session_state.disabled = False
+
 # 결측값 입력받기
-missing_value = st.number_input("Enter the value to replace missing data:", value=0.00, step=0.01, min_value=0.00)
+missing_value = st.number_input("Enter the value to replace missing data:", value=0.00, step=0.01, min_value=0.00,disabled=st.session_state.disabled)
+fill_checkbox = st.checkbox("Deactivate Missing Time data Filling ", key="disabled")
 
 # 파일 업로드
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
@@ -116,9 +121,11 @@ if uploaded_file is not None:
         headers = next(header_row)
 
         # 열 구조 확인
-        if 'grms_x' in headers:
+        if 'grms_x' in headers and st.session_state.disabled == False :
             df = convert_file(uploaded_file)
             df = fill_missing_times(df, missing_value=missing_value)
+        elif 'grms_x' in headers and st.session_state.disabled == True :
+            df = convert_file(uploaded_file)
         elif 'X_axis' in headers:
             df = convert_file(uploaded_file)
         else:
